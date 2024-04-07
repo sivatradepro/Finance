@@ -303,6 +303,19 @@ def strategy_Ichmoku(df, **kwargs):
 
 bt_df = df[(df.index >= start_date) & (df.index <= end_date)]
 
+# The function `prepare_stock_ta_backtest_data` is likely responsible for preparing the data needed to backtest a trading strategy.
+# It probably takes as input a DataFrame containing historical stock price data and possibly some other parameters related to the trading strategy.
+# The function might perform several tasks such as:
+
+# 1. Cleaning the data: This could involve handling missing values, removing outliers, or converting the data to the correct data types.
+
+# 2. Feature engineering: The function might calculate technical indicators from the price data. These indicators can be used as features in the trading strategy.
+
+# 3. Splitting the data: The function might split the data into a training set and a test set. The training set is used to develop the trading strategy, and the test set is used to evaluate its performance.
+
+# 4. Normalizing the data: If the trading strategy involves a machine learning model, the function might normalize the features to have zero mean and unit variance.
+
+# The function likely returns a DataFrame that is ready to be used in the backtesting of the trading strategy.
 def prepare_stock_ta_backtest_data(
     df, start_date, end_date, strategy, **strategy_params
 ):

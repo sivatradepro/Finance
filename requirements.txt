@@ -4,10 +4,12 @@ beautifulsoup4==4.12.2
 config==0.5.1
 factor_analyzer==0.5.0
 fastai==2.7.13
-fbprophet==0.7.1
+# pystan==2.19.1.1
+prophet
+# fbprophet==0.7.1
 Flask==2.2.2
 FundamentalAnalysis==0.2.13
-FundamentalAnalysis==0.3.1
+# FundamentalAnalysis==0.3.1
 googletrans==3.0.0
 ipython==8.15.0
 keras==3.0.2
@@ -35,7 +37,8 @@ selenium==4.16.0
 statsmodels==0.14.0
 streamlit==1.29.0
 ta==0.10.2
-tensorflow==2.15.0.post1
+# tensorflow==2.15.0.post1
+tensorflow
 textblob==0.17.1
 tweepy==4.14.0
 twilio==8.11.0
