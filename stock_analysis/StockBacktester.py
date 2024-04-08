@@ -28,7 +28,8 @@ class StockBacktester:
             print("Data not available. Please ensure data is fetched.")
             return data
     
-    def run_stock_ta_backtest(self, bt_df, stop_loss_lvl=None):
+    def run_stock_ta_backtest(self, stop_loss_lvl=None):
+        bt_df = self.data
         balance = 1000000
         pnl = 0
         position = 0
@@ -239,7 +240,162 @@ class StockBacktester:
             },
             "trade_stats": detail_df,
         }
+    
+    def strategy_MA(self, df, **kwargs):
+        n = kwargs.get("n", 50)
+        ma_type = kwargs.get("ma_type", "sma")
+        ma_type = ma_type.strip().lower()
+        data = df.copy()
 
+        if ma_type == "sma":
+            sma = ta.trend.SMAIndicator(data.Close, n)
+            data["MA"] = sma.sma_indicator().round(4)
+        elif ma_type == "ema":
+            ema = ta.trend.EMAIndicator(data.Close, n)
+            data["MA"] = ema.ema_indicator().round(4)
+
+        data["CLOSE_PREV"] = data.Close.shift(1)
+
+        data["LONG"] = (data.Close > data.MA) & (data.CLOSE_PREV <= data.MA)
+        data["EXIT_LONG"] = (data.Close < data.MA) & (data.CLOSE_PREV >= data.MA)
+
+        data["SHORT"] = (data.Close < data.MA) & (data.CLOSE_PREV >= data.MA)
+        data["EXIT_SHORT"] = (data.Close > data.MA) & (data.CLOSE_PREV <= data.MA)
+
+        data.LONG = data.LONG.shift(1)
+        data.EXIT_LONG = data.EXIT_LONG.shift(1)
+        data.SHORT = data.SHORT.shift(1)
+        data.EXIT_SHORT = data.EXIT_SHORT.shift(1)
+
+        return data
+    
+    def strategy_MACD(self, df, **kwargs):
+        n_slow = kwargs.get("n_slow", 26)
+        n_fast = kwargs.get("n_fast", 12)
+        n_sign = kwargs.get("n_sign", 9)
+        data = df.copy()
+
+        macd = ta.trend.MACD(data.Close, n_slow, n_fast, n_sign)
+
+        data["MACD_DIFF"] = macd.macd_diff().round(4)
+        data["MACD_DIFF_PREV"] = data.MACD_DIFF.shift(1)
+
+        data["LONG"] = (data.MACD_DIFF > 0) & (data.MACD_DIFF_PREV <= 0)
+        data["EXIT_LONG"] = (data.MACD_DIFF < 0) & (data.MACD_DIFF_PREV >= 0)
+
+        data["SHORT"] = (data.MACD_DIFF < 0) & (data.MACD_DIFF_PREV >= 0)
+        data["EXIT_SHORT"] = (data.MACD_DIFF > 0) & (data.MACD_DIFF_PREV <= 0)
+
+        data.LONG = data.LONG.shift(1)
+        data.EXIT_LONG = data.EXIT_LONG.shift(1)
+        data.SHORT = data.SHORT.shift(1)
+        data.EXIT_SHORT = data.EXIT_SHORT.shift(1)
+
+        return data
+    
+    def strategy_RSI(df, **kwargs):
+        n = kwargs.get("n", 14)
+        data = df.copy()
+
+        rsi = ta.momentum.RSIIndicator(data.Close, n)
+
+        data["RSI"] = rsi.rsi().round(4)
+        data["RSI_PREV"] = data.RSI.shift(1)
+
+        data["LONG"] = (data.RSI > 30) & (data.RSI_PREV <= 30)
+        data["EXIT_LONG"] = (data.RSI < 70) & (data.RSI_PREV >= 70)
+
+        data["SHORT"] = (data.RSI < 70) & (data.RSI_PREV >= 70)
+        data["EXIT_SHORT"] = (data.RSI > 30) & (data.RSI_PREV <= 30)
+
+        data.LONG = data.LONG.shift(1)
+        data.EXIT_LONG = data.EXIT_LONG.shift(1)
+        data.SHORT = data.SHORT.shift(1)
+        data.EXIT_SHORT = data.EXIT_SHORT.shift(1)
+
+        return data
+
+    def strategy_Stochastic_fast(self, df, **kwargs):
+        k = kwargs.get("k", 20)
+        d = kwargs.get("d", 5)
+        data = df.copy()
+
+        sto = ta.momentum.StochasticOscillator(data.High, data.Low, data.Close, k, d)
+
+        data["K"] = sto.stoch().round(4)
+        data["D"] = sto.stoch_signal().round(4)
+        data["DIFF"] = data["K"] - data["D"]
+        data["DIFF_PREV"] = data.DIFF.shift(1)
+
+        data["LONG"] = (data.DIFF > 0) & (data.DIFF_PREV <= 0)
+        data["EXIT_LONG"] = (data.DIFF < 0) & (data.DIFF_PREV >= 0)
+
+        data["SHORT"] = (data.DIFF < 0) & (data.DIFF_PREV >= 0)
+        data["EXIT_SHORT"] = (data.DIFF > 0) & (data.DIFF_PREV <= 0)
+
+        data.LONG = data.LONG.shift(1)
+        data.EXIT_LONG = data.EXIT_LONG.shift(1)
+        data.SHORT = data.SHORT.shift(1)
+        data.EXIT_SHORT = data.EXIT_SHORT.shift(1)
+
+        return data
+
+    def strategy_Stochastic_slow(self, df, **kwargs):
+        k = kwargs.get("k", 20)
+        d = kwargs.get("d", 5)
+        dd = kwargs.get("dd", 3)
+        data = df.copy()
+
+        sto = ta.momentum.StochasticOscillator(data.High, data.Low, data.Close, k, d)
+
+        data["K"] = sto.stoch().round(4)
+        data["D"] = sto.stoch_signal().round(4)
+
+        ma = ta.trend.SMAIndicator(data.D, dd)
+        data["DD"] = ma.sma_indicator().round(4)
+
+        data["DIFF"] = data["D"] - data["DD"]
+        data["DIFF_PREV"] = data.DIFF.shift(1)
+
+        data["LONG"] = (data.DIFF > 0) & (data.DIFF_PREV <= 0)
+        data["EXIT_LONG"] = (data.DIFF < 0) & (data.DIFF_PREV >= 0)
+
+        data["SHORT"] = (data.DIFF < 0) & (data.DIFF_PREV >= 0)
+        data["EXIT_SHORT"] = (data.DIFF > 0) & (data.DIFF_PREV <= 0)
+
+        data.LONG = data.LONG.shift(1)
+        data.EXIT_LONG = data.EXIT_LONG.shift(1)
+        data.SHORT = data.SHORT.shift(1)
+        data.EXIT_SHORT = data.EXIT_SHORT.shift(1)
+
+        return data
+    
+    def strategy_Ichmoku(df, **kwargs):
+        n_conv = kwargs.get("n_conv", 9)
+        n_base = kwargs.get("n_base", 26)
+        n_span_b = kwargs.get("n_span_b", 26)
+        data = df.copy()
+
+        ichmoku = ta.trend.IchimokuIndicator(data.High, data.Low, n_conv, n_base, n_span_b)
+
+        data["BASE"] = ichmoku.ichimoku_base_line().round(4)
+        data["CONV"] = ichmoku.ichimoku_conversion_line().round(4)
+
+        data["DIFF"] = data["CONV"] - data["BASE"]
+        data["DIFF_PREV"] = data.DIFF.shift(1)
+
+        data["LONG"] = (data.DIFF > 0) & (data.DIFF_PREV <= 0)
+        data["EXIT_LONG"] = (data.DIFF < 0) & (data.DIFF_PREV >= 0)
+
+        data["SHORT"] = (data.DIFF < 0) & (data.DIFF_PREV >= 0)
+        data["EXIT_SHORT"] = (data.DIFF > 0) & (data.DIFF_PREV <= 0)
+
+        data.LONG = data.LONG.shift(1)
+        data.EXIT_LONG = data.EXIT_LONG.shift(1)
+        data.SHORT = data.SHORT.shift(1)
+        data.EXIT_SHORT = data.EXIT_SHORT.shift(1)
+
+        return data
         
     def apply_technical_indicators(self):
         if self.data is not None:
@@ -286,8 +442,9 @@ backtester = StockBacktester(ticker, start_date, end_date)
 backtester.fetch_data()
 backtester.apply_technical_indicators()
 backtester.apply_keltner_channel_strategy()
-result = backtester.run_stock_ta_backtest(backtester.data, stop_loss_lvl=5)
+result = backtester.run_stock_ta_backtest(stop_loss_lvl=5)
 result["cum_ret_df"].plot(figsize=(15, 5))
+print("Cumulative Return:", result["cum_ret_df"].CUM_RET[-1], "%")
 print("Max Drawdown:", result["max_drawdown"]["pct"], "%")
-result["trade_stats"]
+print("Trade Stats:", result["trade_stats"])
 backtester.display_results()
